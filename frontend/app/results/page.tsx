@@ -42,14 +42,14 @@ export default function ResultsPage() {
           let prediction: "real" | "fake"
           let confidence: number
 
-          // Only "real" if realism > 0.75, otherwise "fake"
-          if (realism > 0.75) {
+          // For video: "real" if realism > deepfake, else "fake"
+          // For image: "real" if realism > deepfake, else "fake"
+          if (realism > deepfake) {
             prediction = "real"
             confidence = Math.round(realism * 100)
           } else {
             prediction = "fake"
-            // Confidence is the higher of deepfake or realism, as before
-            confidence = Math.round(Math.max(deepfake, realism) * 100)
+            confidence = Math.round(deepfake * 100)
           }
 
           setResult({

@@ -9,9 +9,6 @@ import { useEffect } from "react"
 import { toast } from "sonner"
 
 export default function HomePage() {
-  useEffect(() => {
-    toast.success("Success")
-  },[]) 
   return (
     <div className="min-h-screen flex flex-col relative">
       <AnimatedBackground />

@@ -151,7 +151,7 @@ def main():
     try:
         if ext in [".jpg", ".jpeg", ".png", ".bmp"]:
             # Image inference
-            results,heatmap_b64 = classify_image(file_path,return_heatmap=True)
+            results,heatmap_b64 = classify_image(file_path,return_heatmap=False)
             print(json.dumps({"type": "image", "result": results,"heatmap":heatmap_b64}))
         elif ext in [".mp4", ".avi", ".mov", ".mkv"]:
             # Video inference
@@ -159,13 +159,31 @@ def main():
             if len(frames) == 0:
                 print(json.dumps({"error": "No frames extracted from video"}))
                 sys.exit(1)
+
+            # Load model
             model, vae = load_genconvit_model(MODEL_WEIGHTS, VAE_WEIGHTS, DEVICE)
+
+            # Preprocess frames for video prediction
             frames_tensor = preprocess_frames(frames, DEVICE)
             probs = predict_video(model, frames_tensor)
             video_pred = probs.mean(axis=0)
             labels = ["Realism", "Deepfake"]
             result = {labels[i]: float(video_pred[i]) for i in range(len(labels))}
-            print(json.dumps({"type": "video", "result": result}))
+
+            # --- Grad-CAM for a single frame (e.g., first frame) ---
+            first_frame = frames[0]
+            img = Image.fromarray((first_frame * 255).astype(np.uint8))
+            inputs = image_processor(images=img, return_tensors="pt").to(DEVICE)
+            pred_class = int(torch.argmax(image_model(**inputs).logits, dim=1))
+            target_block = image_model.vit.encoder.layer[-1]  # last transformer block
+            cam = vit_gradcam(image_model, inputs, pred_class, target_block)
+
+            heatmap = cv2.applyColorMap(np.uint8(255 * cam), cv2.COLORMAP_JET)
+            overlay = cv2.addWeighted(np.array(img.resize((224, 224))), 0.6, heatmap, 0.4, 0)
+            _, buffer = cv2.imencode(".jpg", overlay)
+            heatmap_b64 = base64.b64encode(buffer).decode("utf-8")
+
+            print(json.dumps({"type": "video", "result": result, "heatmap": heatmap_b64}))
         else:
             print(json.dumps({"error": "Unsupported file type"}))
             sys.exit(1)
