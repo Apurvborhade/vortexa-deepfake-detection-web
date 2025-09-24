@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useCallback, useRef, useEffect } from "react"
+import { useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { LinkIcon, X, FileImage, FileVideo, ImageIcon, Video } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,7 +9,6 @@ import { Label } from "@/components/ui/label"
 import axiosInstance from "@/utils/axiosInstance"
 import { toast } from "sonner"
 
-
 export default function FileUpload() {
   const [file, setFile] = useState<File | null>(null)
   const [url, setUrl] = useState("")
@@ -19,9 +16,6 @@ export default function FileUpload() {
   const [isLoading, setIsLoading] = useState(false)
   const [uploadMode, setUploadMode] = useState<"image" | "video">("image")
   const router = useRouter()
-
-
-
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -38,14 +32,12 @@ export default function FileUpload() {
     (e: React.DragEvent) => {
       e.preventDefault()
       setIsDragging(false)
-
       const droppedFile = e.dataTransfer.files[0]
       if (droppedFile) {
         const isValidType =
           uploadMode === "image"
             ? droppedFile.type.startsWith("image/")
             : droppedFile.type.startsWith("video/")
-
         if (isValidType) {
           setFile(droppedFile)
           setUrl("")
@@ -65,7 +57,7 @@ export default function FileUpload() {
 
   const handleFileClick = () => {
     if (fileInputRef.current) {
-      fileInputRef.current.value = "" // reset so re-selecting same file works
+      fileInputRef.current.value = ""
       fileInputRef.current.click()
     }
   }
@@ -73,57 +65,44 @@ export default function FileUpload() {
   const handleModeToggle = (mode: "image" | "video") => {
     setUploadMode(mode)
     setFile(null)
+    setUrl("")
   }
 
   const handleSubmit = async () => {
     if (!file && !url) return
-
     setIsLoading(true)
 
     try {
-      const formData = new FormData();
-      if (file) {
-        formData.append("file", file);
+      const formData = new FormData()
+      if (file) formData.append("file", file)
+      const res = await axiosInstance.post("/detect", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+
+      const resultData = {
+        ...res.data.result,
+        fileUrl: file ? URL.createObjectURL(file) : url,
       }
-      const res = await axiosInstance.post('/detect', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      console.log("Result",res)
-      localStorage.setItem("deepcheck-result", JSON.stringify(res.data.result))
-      toast.success("Image Analysis Completed")
+
+      localStorage.setItem("deepcheck-result", JSON.stringify(resultData))
+      toast.success("Analysis Completed")
       router.push("/results")
     } catch (error) {
-      console.log(error)
-      // Show error message from axiosInstance if available, otherwise generic error
+      console.error(error)
       const errorMessage =
-        (error as any)?.response?.data?.error ||
-        (error as any)?.message ||
-        "An error occurred during analysis";
-      toast.error(errorMessage);
+        (error as any)?.response?.data?.error || (error as any)?.message || "Analysis failed"
+      toast.error(errorMessage)
+    } finally {
+      setIsLoading(false)
     }
-    // await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    // const mockResult = {
-    //   type: file ? "file" : "url",
-    //   name: file?.name || url,
-    //   prediction: Math.random() > 0.5 ? "real" : "fake",
-    //   confidence: Math.floor(Math.random() * 30) + 70,
-    //   fileUrl: file ? URL.createObjectURL(file) : url,
-    // }
-
-   
   }
 
-  const removeFile = () => {
-    setFile(null)
-  }
-
+  const removeFile = () => setFile(null)
   const isValid = file || url.trim()
 
   return (
     <div className="space-y-6">
+      {/* Mode Toggle */}
       <div className="flex justify-center">
         <div className="flex bg-background/20 rounded-lg p-1 border border-border">
           <Button
@@ -155,65 +134,64 @@ export default function FileUpload() {
         </div>
       </div>
 
-      {/* File Upload Area */}
+      {/* File Drop Area */}
       <div
         className={`border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer ${
-          isDragging
-            ? "border-primary bg-primary/5 drag-over"
-            : "border-border hover:border-primary/50 hover:bg-accent/20"
+          isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-accent/20"
         }`}
-        onClick={handleFileClick} // ✅ Clicking anywhere opens explorer
+        onClick={handleFileClick}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {file ? (
+        {file || url ? (
           <div className="space-y-4">
+            {uploadMode === "image" ? (
+              <img
+                src={file ? URL.createObjectURL(file) : url}
+                alt="preview"
+                className="mx-auto max-h-64 rounded-lg object-contain"
+              />
+            ) : (
+              <video
+                src={file ? URL.createObjectURL(file) : url}
+                controls
+                className="mx-auto max-h-64 rounded-lg"
+              />
+            )}
             <div className="flex items-center justify-center space-x-2">
-              {file.type.startsWith("image/") ? (
-                <FileImage className="h-8 w-8 text-primary" />
-              ) : (
-                <FileVideo className="h-8 w-8 text-primary" />
+              <span className="font-medium">{file?.name || url}</span>
+              {file && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    removeFile()
+                  }}
+                  className="h-6 w-6 p-0 hover:bg-destructive/20"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               )}
-              <span className="font-medium">{file.name}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation() // ✅ prevent explorer when removing
-                  removeFile()
-                }}
-                className="h-6 w-6 p-0 hover:bg-destructive/20"
-              >
-                <X className="h-4 w-4" />
-              </Button>
             </div>
-            <p className="text-sm text-muted-foreground">
-              File size: {(file.size / 1024 / 1024).toFixed(2)} MB
-            </p>
           </div>
         ) : (
           <div className="space-y-4">
             <div className="flex justify-center">
               <div className="p-3 bg-primary/10 rounded-full">
-                {uploadMode === "image" ? (
-                  <ImageIcon className="h-8 w-8 text-primary" />
-                ) : (
-                  <Video className="h-8 w-8 text-primary" />
-                )}
+                {uploadMode === "image" ? <ImageIcon className="h-8 w-8 text-primary" /> : <Video className="h-8 w-8 text-primary" />}
               </div>
             </div>
-            <div>
-              <p className="text-lg font-medium mb-2">Drop your {uploadMode} here</p>
-              <p className="text-muted-foreground mb-6">
-                or click to select {uploadMode === "image" ? "an image" : "a video"}
-              </p>
-            </div>
+            <p className="text-lg font-medium mb-2">Drop your {uploadMode} here</p>
+            <p className="text-muted-foreground mb-6">
+              or click to select {uploadMode === "image" ? "an image" : "a video"}
+            </p>
           </div>
         )}
       </div>
 
-      {/* Hidden input (outside of drop area) */}
+      {/* Hidden File Input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -231,29 +209,18 @@ export default function FileUpload() {
         <Input
           id="url-input"
           type="url"
-          placeholder={
-            uploadMode === "image"
-              ? "https://example.com/image.jpg"
-              : "https://example.com/video.mp4"
-          }
+          placeholder={uploadMode === "image" ? "https://example.com/image.jpg" : "https://example.com/video.mp4"}
           value={url}
           onChange={(e) => {
             setUrl(e.target.value)
-            if (e.target.value.trim()) {
-              setFile(null)
-            }
+            if (e.target.value.trim()) setFile(null)
           }}
           className="bg-background/50"
         />
       </div>
 
       {/* Submit Button */}
-      <Button
-        onClick={handleSubmit}
-        disabled={!isValid || isLoading}
-        className="w-full h-12 text-lg font-medium"
-        size="lg"
-      >
+      <Button onClick={handleSubmit} disabled={!isValid || isLoading} className="w-full h-12 text-lg font-medium" size="lg">
         {isLoading ? (
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
