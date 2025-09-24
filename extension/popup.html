@@ -4,20 +4,22 @@
   <meta charset="UTF-8">
   <title>Image Cropper</title>
   <style>
-    body { font-family: Arial; padding: 10px; width: 240px; }
-    button { padding: 10px; width: 100%; cursor: pointer; margin-bottom: 8px; }
-    #preview { width: 100%; border: 1px solid #ddd; border-radius: 6px; display: none; }
-    #empty { color: #666; font-size: 12px; }
-    #status { margin-top: 8px; font-size: 12px; color: #333; }
-    #result { margin-top: 6px; font-size: 12px; }
-    .badge { display: inline-block; padding: 2px 6px; border-radius: 999px; font-weight: 600; font-size: 11px; }
-    .badge-real { background: #e8f5e9; color: #1b5e20; }
-    .badge-fake { background: #ffebee; color: #b71c1c; }
-    .meter { background: #f1f3f5; border-radius: 4px; height: 8px; overflow: hidden; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji"; padding: 12px; width: 280px; background: #0b0f14; color: #e5e7eb; }
+    button { padding: 10px; width: 100%; cursor: pointer; margin-bottom: 8px; border: 1px solid #1f2937; background: linear-gradient(180deg, #111827, #0b1220); color: #e5e7eb; border-radius: 8px; transition: transform .06s ease, background .15s ease, border-color .15s ease; }
+    button:hover { background: linear-gradient(180deg, #131a2b, #0c1424); border-color: #334155; }
+    button:active { transform: translateY(1px); }
+    #preview { width: 100%; border: 1px solid #1f2937; border-radius: 10px; display: none; box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+    #empty { color: #9aa4b2; font-size: 12px; }
+    #status { margin-top: 8px; font-size: 12px; color: #cbd5e1; }
+    #result { margin-top: 8px; font-size: 12px; background: #0f172a; border: 1px solid #1f2937; border-radius: 8px; padding: 8px; }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-weight: 600; font-size: 11px; border: 1px solid transparent; }
+    .badge-real { background: rgba(16,185,129,0.15); color: #34d399; border-color: rgba(16,185,129,0.25); }
+    .badge-fake { background: rgba(239,68,68,0.15); color: #f87171; border-color: rgba(239,68,68,0.25); }
+    .meter { background: #1f2937; border-radius: 6px; height: 8px; overflow: hidden; }
     .bar { height: 100%; }
-    .bar-real { background: #4caf50; }
-    .bar-fake { background: #f44336; }
-    .row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0 4px; }
+    .bar-real { background: linear-gradient(90deg, #22c55e, #16a34a); }
+    .bar-fake { background: linear-gradient(90deg, #ef4444, #dc2626); }
+    .row { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 6px; }
   </style>
 </head>
 <body>
