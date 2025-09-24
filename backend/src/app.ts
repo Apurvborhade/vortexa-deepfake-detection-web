@@ -111,5 +111,6 @@ app.post("/detect/video", upload.single("video"), (req: Request, res: Response) 
 
 
 
+
 app.use(errorHandler);
 export default app;
