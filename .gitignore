@@ -11,3 +11,7 @@ backend/middlewares
 backend/utils
 backend/models
 .env
+
+backend/deepfake-model/venv
+backend/deepfake-model/weights
+GenConViT/

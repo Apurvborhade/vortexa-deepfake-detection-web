@@ -2,3 +2,8 @@ torch
 transformers
 Pillow
 opencv-python
+dlib
+torchvision 
+opencv-python 
+face_recognition 
+timm
