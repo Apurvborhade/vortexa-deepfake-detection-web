@@ -37,7 +37,9 @@ export default function FileUpload() {
       const droppedFile = e.dataTransfer.files[0]
       if (droppedFile) {
         const isValidType =
-          uploadMode === "image" ? droppedFile.type.startsWith("image/") : droppedFile.type.startsWith("video/")
+          uploadMode === "image"
+            ? droppedFile.type.startsWith("image/")
+            : droppedFile.type.startsWith("video/")
 
         if (isValidType) {
           setFile(droppedFile)
@@ -57,12 +59,15 @@ export default function FileUpload() {
   }
 
   const handleFileClick = () => {
-    fileInputRef.current?.click()
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "" // reset so re-selecting same file works
+      fileInputRef.current.click()
+    }
   }
 
   const handleModeToggle = (mode: "image" | "video") => {
     setUploadMode(mode)
-    setFile(null) // Clear current file when switching modes
+    setFile(null)
   }
 
   const handleSubmit = async () => {
@@ -70,15 +75,13 @@ export default function FileUpload() {
 
     setIsLoading(true)
 
-    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 2000))
 
-    // Navigate to results page with mock data
     const mockResult = {
       type: file ? "file" : "url",
       name: file?.name || url,
       prediction: Math.random() > 0.5 ? "real" : "fake",
-      confidence: Math.floor(Math.random() * 30) + 70, // 70-99%
+      confidence: Math.floor(Math.random() * 30) + 70,
       fileUrl: file ? URL.createObjectURL(file) : url,
     }
 
@@ -127,11 +130,12 @@ export default function FileUpload() {
 
       {/* File Upload Area */}
       <div
-        className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+        className={`border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer ${
           isDragging
             ? "border-primary bg-primary/5 drag-over"
             : "border-border hover:border-primary/50 hover:bg-accent/20"
         }`}
+        onClick={handleFileClick} // ✅ Clicking anywhere opens explorer
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -145,11 +149,21 @@ export default function FileUpload() {
                 <FileVideo className="h-8 w-8 text-primary" />
               )}
               <span className="font-medium">{file.name}</span>
-              <Button variant="ghost" size="sm" onClick={removeFile} className="h-6 w-6 p-0 hover:bg-destructive/20">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation() // ✅ prevent explorer when removing
+                  removeFile()
+                }}
+                className="h-6 w-6 p-0 hover:bg-destructive/20"
+              >
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground">File size: {(file.size / 1024 / 1024).toFixed(2)} MB</p>
+            <p className="text-sm text-muted-foreground">
+              File size: {(file.size / 1024 / 1024).toFixed(2)} MB
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -167,36 +181,19 @@ export default function FileUpload() {
               <p className="text-muted-foreground mb-6">
                 or click to select {uploadMode === "image" ? "an image" : "a video"}
               </p>
-
-              <Button
-                variant="outline"
-                className="cursor-pointer bg-transparent flex items-center gap-2 px-6"
-                onClick={handleFileClick}
-              >
-                {uploadMode === "image" ? (
-                  <>
-                    <ImageIcon className="h-4 w-4" />
-                    Select Image
-                  </>
-                ) : (
-                  <>
-                    <Video className="h-4 w-4" />
-                    Select Video
-                  </>
-                )}
-              </Button>
-
-              <Input
-                ref={fileInputRef}
-                type="file"
-                accept={uploadMode === "image" ? "image/*" : "video/*"}
-                onChange={handleFileSelect}
-                className="hidden"
-              />
             </div>
           </div>
         )}
       </div>
+
+      {/* Hidden input (outside of drop area) */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={uploadMode === "image" ? "image/*" : "video/*"}
+        onChange={handleFileSelect}
+        className="hidden"
+      />
 
       {/* URL Input */}
       <div className="space-y-2">
@@ -207,7 +204,11 @@ export default function FileUpload() {
         <Input
           id="url-input"
           type="url"
-          placeholder={uploadMode === "image" ? "https://example.com/image.jpg" : "https://example.com/video.mp4"}
+          placeholder={
+            uploadMode === "image"
+              ? "https://example.com/image.jpg"
+              : "https://example.com/video.mp4"
+          }
           value={url}
           onChange={(e) => {
             setUrl(e.target.value)
