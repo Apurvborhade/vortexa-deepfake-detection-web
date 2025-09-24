@@ -114,6 +114,7 @@ export default function FileUpload() {
       console.log("Result",res)
       localStorage.setItem("deepcheck-result", JSON.stringify(res.data.result))
       localStorage.setItem("deepcheck-heatmap", JSON.stringify(res.data.heatmap))
+      localStorage.setItem("deepcheck-file", JSON.stringify(file))
       toast.success("Image Analysis Completed")
       router.push("/results")
     } catch (error) {

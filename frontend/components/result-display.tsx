@@ -24,6 +24,7 @@ export default function ResultDisplay({ result, heatmap }: ResultDisplayProps) {
   const isReal = result.prediction === "real"
   
   console.log(heatmap)
+  console.log("Result is ",result)
   const handleBackToHome = () => {
     localStorage.removeItem("deepcheck-result")
     localStorage.removeItem("deepcheck-heatmap")
