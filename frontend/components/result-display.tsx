@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { CheckCircle, XCircle, ArrowLeft, AlertTriangle, Info } from "lucide-react"
+import { CheckCircle, XCircle, ArrowLeft, AlertTriangle, Info, Flame } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 
@@ -14,18 +14,38 @@ interface AnalysisResult {
 }
 
 interface ResultDisplayProps {
-  result: AnalysisResult
+  result: AnalysisResult,
+  heatmap: any
 }
 
-export default function ResultDisplay({ result }: ResultDisplayProps) {
+export default function ResultDisplay({ result, heatmap }: ResultDisplayProps) {
   const router = useRouter()
 
   const isReal = result.prediction === "real"
-
+  
+  console.log(heatmap)
   const handleBackToHome = () => {
     localStorage.removeItem("deepcheck-result")
+    localStorage.removeItem("deepcheck-heatmap")
     router.push("/")
   }
+
+  // Prepare heatmap image src if available and valid
+  let heatmapImgSrc: string | null = null
+  // Try to robustly parse the heatmap value, which may be a JSON string or base64 string
+  if (typeof heatmap === "string" && heatmap.length > 0 && heatmap != undefined) {
+    // Try to parse if it's a JSON string (from localStorage)
+    try {
+      const parsed = JSON.parse(heatmap)
+      if (typeof parsed === "string" && parsed.length > 0) {
+        heatmapImgSrc = `data:image/jpeg;base64,${parsed}`
+      }
+    } catch {
+      // Not JSON, assume it's already base64
+      heatmapImgSrc = `data:image/jpeg;base64,${heatmap}`
+    }
+  }
+  console.log(heatmapImgSrc)
 
   return (
     <div className="space-y-8">
@@ -88,6 +108,32 @@ export default function ResultDisplay({ result }: ResultDisplayProps) {
             </div>
             <Progress value={result.deepfake * 100} className="h-2 bg-red-500/10" />
           </div>
+
+          {/* Heatmap Visualization */}
+          {heatmapImgSrc && heatmap != undefined && (
+            <div className="mb-8">
+              <div className="flex items-center mb-2">
+                <Flame className="h-5 w-5 text-red-500 mr-2" />
+                <span className="font-medium">Prediction Heatmap</span>
+              </div>
+              <div className="flex flex-col items-center">
+                {/* Add onError fallback for debugging */}
+                <img
+                  src={heatmapImgSrc}
+                  alt="Prediction Heatmap"
+                  className="rounded-lg border border-border shadow-md max-w-xs w-full"
+                  style={{ background: "#222" }}
+                  onError={e => {
+                    (e.target as HTMLImageElement).style.display = "none"
+                  }}
+                />
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  <span className="text-red-500 font-semibold">Red zones</span> highlight the areas that most influenced the AI's prediction.<br />
+                  These regions are where the model detected features most indicative of deepfakes or authenticity.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Additional Info */}
           <div className="bg-accent/20 border border-border/40 rounded-lg p-4 mb-6">

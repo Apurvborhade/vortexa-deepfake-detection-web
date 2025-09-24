@@ -8,6 +8,9 @@ import cv2
 import numpy as np
 import os
 import yaml
+import torch.nn.functional as F
+from einops import rearrange
+import base64
 
 # Add GenConViT repo to path and import
 repo_root = Path(__file__).parent / "GenConViT"
@@ -72,15 +75,72 @@ def predict_video(model, frames_tensor):
         probs = torch.nn.functional.softmax(outputs, dim=1)
     return probs.cpu().numpy()
 
-def classify_image(image_path):
+def vit_gradcam(model, inputs, target_class, target_block):
+    activations = []
+    gradients = []
+
+    def forward_hook(module, inp, out):
+        activations.append(out)
+
+    def backward_hook(module, grad_in, grad_out):
+        gradients.append(grad_out[0])
+
+    # Register hooks on a Transformer encoder block (ViT uses blocks, not conv layers)
+    handle_fw = target_block.register_forward_hook(forward_hook)
+    handle_bw = target_block.register_backward_hook(backward_hook)
+
+    # Forward + Backward
+    outputs = model(**inputs)
+    score = outputs.logits[:, target_class].squeeze()
+    model.zero_grad()
+    score.backward()
+
+    # Extract
+    act = activations[0]        # [batch, tokens, hidden_dim]
+    grads = gradients[0]        # same shape
+
+    weights = grads.mean(dim=1)  # [batch, hidden_dim]
+    cam = (act * weights.unsqueeze(1)).sum(dim=-1)  # [batch, tokens]
+
+    # Drop CLS token
+    cam = cam[:, 1:]
+
+    # Normalize
+    cam = cam.reshape(1, int(cam.size(1) ** 0.5), -1).detach().cpu().numpy()
+    cam = (cam - cam.min()) / (cam.max() - cam.min())
+    cam = 1 - cam
+    cam = cv2.resize(cam[0], (224, 224))
+
+    # Cleanup
+    handle_fw.remove()
+    handle_bw.remove()
+
+    return cam
+
+def classify_image(image_path, return_heatmap=False):
     img = Image.open(image_path).convert("RGB")
     inputs = image_processor(images=img, return_tensors="pt").to(DEVICE)
-    with torch.no_grad():
-        outputs = image_model(**inputs)
-    probs = torch.nn.functional.softmax(outputs.logits, dim=1).squeeze().tolist()
+
+    outputs = image_model(**inputs)
+    probs = F.softmax(outputs.logits, dim=1).squeeze().tolist()
     labels = image_model.config.id2label
     results = {labels[i]: round(probs[i], 3) for i in range(len(probs))}
-    return results
+
+    heatmap_b64 = None
+    if return_heatmap:
+        pred_class = int(torch.argmax(outputs.logits, dim=1))
+        # pick the last transformer block
+        target_block = image_model.vit.encoder.layer[-1]
+        cam = vit_gradcam(image_model, inputs, pred_class, target_block)
+
+        heatmap = cv2.applyColorMap(np.uint8(255 * cam), cv2.COLORMAP_JET)
+        overlay = cv2.addWeighted(np.array(img.resize((224, 224))), 0.6, heatmap, 0.4, 0)
+
+        _, buffer = cv2.imencode(".jpg", overlay)
+        heatmap_b64 = base64.b64encode(buffer).decode("utf-8")
+
+    return results, heatmap_b64
+
 
 def main():
     if len(sys.argv) < 2:
@@ -91,8 +151,8 @@ def main():
     try:
         if ext in [".jpg", ".jpeg", ".png", ".bmp"]:
             # Image inference
-            result = classify_image(file_path)
-            print(json.dumps({"type": "image", "result": result}))
+            results,heatmap_b64 = classify_image(file_path,return_heatmap=True)
+            print(json.dumps({"type": "image", "result": results,"heatmap":heatmap_b64}))
         elif ext in [".mp4", ".avi", ".mov", ".mkv"]:
             # Video inference
             frames = extract_frames(file_path, MAX_FRAMES)

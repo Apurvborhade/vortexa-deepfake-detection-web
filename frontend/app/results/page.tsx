@@ -16,11 +16,16 @@ interface AnalysisResult {
 
 export default function ResultsPage() {
   const [result, setResult] = useState<AnalysisResult | null>(null)
+  const [heatmap, setHeatMap] = useState<any | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
     const storedResult = localStorage.getItem("deepcheck-result")
+    const storedHeatmap = localStorage.getItem("deepcheck-heatmap")
+    if(storedHeatmap) {
+      setHeatMap(storedHeatmap)
+    }
     if (storedResult) {
       try {
         // The result is in the format: { "Realism": 0.57, "Deepfake": 0.42 }
@@ -101,7 +106,7 @@ export default function ResultsPage() {
       <Navigation />
       <main className="flex-1 relative z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <ResultDisplay result={result} />
+          <ResultDisplay result={result} heatmap={heatmap} />
         </div>
       </main>
       <Footer />
