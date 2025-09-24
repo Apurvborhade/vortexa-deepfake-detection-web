@@ -4,7 +4,7 @@ import Footer from "@/components/footer"
 import FileUpload from "@/components/file-upload"
 import AnimatedBackground from "@/components/animated-background"
 import ScrollAnimations from "@/components/scroll-animations"
-import { Shield, Zap, Lock, CheckCircle } from "lucide-react"
+import { Shield, Zap, Lock, CheckCircle, MousePointerClick } from "lucide-react"
 import { useEffect } from "react"
 import { toast } from "sonner"
 
@@ -39,6 +39,35 @@ export default function HomePage() {
           {/* Upload Section */}
           <div className="max-w-2xl mx-auto mb-16">
             <FileUpload />
+          </div>
+
+          {/* Extension Section */}
+          <div className="max-w-2xl mx-auto mb-16">
+            <div className="flex flex-col md:flex-row items-center gap-6 p-6 rounded-lg bg-card/50 border border-border/40 backdrop-blur-sm hover-card shadow-lg">
+              <div className="flex-shrink-0 flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4 md:mb-0">
+                <MousePointerClick className="h-8 w-8 text-primary" />
+              </div>
+              <div className="flex-1 text-center md:text-left">
+                <h3 className="text-lg font-semibold mb-2">Chrome Extension: Snip Images Instantly</h3>
+                <p className="text-muted-foreground text-sm mb-3">
+                  <span className="font-medium text-primary">New!</span> Use our browser extension to select and crop any image directly from any webpage—just like a snipping tool. No need to download or upload manually!
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2 justify-center md:justify-start">
+                  <a
+                    href="https://chrome.google.com/webstore/detail/image-cropper-deepfake-detector" // TODO: Replace with actual link
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block px-4 py-2 rounded-md bg-primary text-white font-semibold shadow hover:bg-primary/90 transition"
+                  >
+                    Get the Extension
+                  </a>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <MousePointerClick className="w-4 h-4" />
+                    Drag to select any image!
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Features Section */}
@@ -81,6 +110,9 @@ export default function HomePage() {
               <p>1. Upload an image or video file, or paste a video URL</p>
               <p>2. Our AI analyzes the content for deepfake indicators</p>
               <p>3. Get instant results with confidence scores</p>
+              <p className="mt-4 text-sm text-primary">
+                Or use the extension to snip any image from the web!
+              </p>
             </div>
           </div>
         </div>
