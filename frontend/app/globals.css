@@ -304,3 +304,56 @@ body {
     linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
   background-size: 50px 50px;
 }
+/* 🔥 Shooting Star Effect */
+@keyframes shooting-star {
+  0% {
+    transform: translateX(0) translateY(0) scale(0.5);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-400px) translateY(200px) scale(0.8);
+    opacity: 0;
+  }
+}
+.animate-shooting-star {
+  animation: shooting-star 3s ease-out infinite;
+}
+
+/* 🌊 Floating Effect */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* ✨ Twinkle Stars */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+.animate-twinkle {
+  animation: twinkle 2s ease-in-out infinite;
+}
+
+/* 🌌 Orbiting Effect */
+@keyframes orbit {
+  0% { transform: rotate(0deg) translateX(60px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(60px) rotate(-360deg); }
+}
+.animate-orbit {
+  animation: orbit 12s linear infinite;
+}
+
+/* 🔮 Pulse Glow */
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(0,150,255,0.3); }
+  50% { box-shadow: 0 0 30px rgba(0,150,255,0.7); }
+}
+.animate-glow {
+  animation: glow 3s ease-in-out infinite;
+}
