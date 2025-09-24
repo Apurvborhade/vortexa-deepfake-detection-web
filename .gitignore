@@ -1,0 +1,13 @@
+backend/node_modules
+backend/dist
+backend/build
+backend/logs
+backend/temp
+backend/uploads
+backend/public
+backend/views
+backend/config
+backend/middlewares
+backend/utils
+backend/models
+.env
