@@ -3,7 +3,10 @@
     "name": "Image Cropper",
     "version": "1.0",
     "description": "Crop an image from any webpage",
-    "permissions": ["activeTab", "scripting", "storage"],
+    "permissions": ["activeTab", "scripting", "storage", "windows"],
+    "background": {
+      "service_worker": "background.js"
+    },
     "action": {
       "default_popup": "popup.html",
       "default_icon": {
