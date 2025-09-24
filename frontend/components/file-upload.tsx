@@ -2,12 +2,15 @@
 
 import type React from "react"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { LinkIcon, X, FileImage, FileVideo, ImageIcon, Video } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import axiosInstance from "@/utils/axiosInstance"
+import { toast } from "sonner"
+
 
 export default function FileUpload() {
   const [file, setFile] = useState<File | null>(null)
@@ -16,6 +19,8 @@ export default function FileUpload() {
   const [isLoading, setIsLoading] = useState(false)
   const [uploadMode, setUploadMode] = useState<"image" | "video">("image")
   const router = useRouter()
+
+
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -75,18 +80,40 @@ export default function FileUpload() {
 
     setIsLoading(true)
 
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    const mockResult = {
-      type: file ? "file" : "url",
-      name: file?.name || url,
-      prediction: Math.random() > 0.5 ? "real" : "fake",
-      confidence: Math.floor(Math.random() * 30) + 70,
-      fileUrl: file ? URL.createObjectURL(file) : url,
+    try {
+      const formData = new FormData();
+      if (file) {
+        formData.append("file", file);
+      }
+      const res = await axiosInstance.post('/detect', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      console.log("Result",res)
+      localStorage.setItem("deepcheck-result", JSON.stringify(res.data.result))
+      toast.success("Image Analysis Completed")
+      router.push("/results")
+    } catch (error) {
+      console.log(error)
+      // Show error message from axiosInstance if available, otherwise generic error
+      const errorMessage =
+        (error as any)?.response?.data?.error ||
+        (error as any)?.message ||
+        "An error occurred during analysis";
+      toast.error(errorMessage);
     }
+    // await new Promise((resolve) => setTimeout(resolve, 2000))
 
-    localStorage.setItem("deepcheck-result", JSON.stringify(mockResult))
-    router.push("/results")
+    // const mockResult = {
+    //   type: file ? "file" : "url",
+    //   name: file?.name || url,
+    //   prediction: Math.random() > 0.5 ? "real" : "fake",
+    //   confidence: Math.floor(Math.random() * 30) + 70,
+    //   fileUrl: file ? URL.createObjectURL(file) : url,
+    // }
+
+   
   }
 
   const removeFile = () => {

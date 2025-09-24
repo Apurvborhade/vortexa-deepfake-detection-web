@@ -5,14 +5,12 @@ import { useRouter } from "next/navigation"
 import { CheckCircle, XCircle, ArrowLeft, AlertTriangle, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import Image from "next/image"
 
 interface AnalysisResult {
-  type: "file" | "url"
-  name: string
   prediction: "real" | "fake"
   confidence: number
-  fileUrl: string
+  realism: number
+  deepfake: number
 }
 
 interface ResultDisplayProps {
@@ -21,14 +19,8 @@ interface ResultDisplayProps {
 
 export default function ResultDisplay({ result }: ResultDisplayProps) {
   const router = useRouter()
-  const [imageError, setImageError] = useState(false)
 
   const isReal = result.prediction === "real"
-  const isVideo =
-    result.name.toLowerCase().includes(".mp4") ||
-    result.name.toLowerCase().includes(".mov") ||
-    result.name.toLowerCase().includes(".avi") ||
-    result.type === "url"
 
   const handleBackToHome = () => {
     localStorage.removeItem("deepcheck-result")
@@ -41,42 +33,8 @@ export default function ResultDisplay({ result }: ResultDisplayProps) {
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-2">Analysis Complete</h1>
         <p className="text-muted-foreground">
-          Results for: <span className="font-medium">{result.name}</span>
+          Your file has been analyzed by our AI model.
         </p>
-      </div>
-
-      {/* Media Display */}
-      <div className="flex justify-center">
-        <div className="max-w-md w-full">
-          <div className="aspect-video bg-card/50 border border-border/40 rounded-lg overflow-hidden">
-            {isVideo ? (
-              <video
-                src={result.fileUrl}
-                controls
-                className="w-full h-full object-cover"
-                onError={() => setImageError(true)}
-              >
-                Your browser does not support the video tag.
-              </video>
-            ) : !imageError ? (
-              <Image
-                src={result.fileUrl || "/placeholder.svg"}
-                alt="Uploaded content"
-                width={400}
-                height={300}
-                className="w-full h-full object-cover"
-                onError={() => setImageError(true)}
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                <div className="text-center">
-                  <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
-                  <p>Unable to display media</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Results Card */}
@@ -115,6 +73,20 @@ export default function ResultDisplay({ result }: ResultDisplayProps) {
             <p className="text-sm text-muted-foreground">
               Our AI model is {result.confidence}% confident in this prediction
             </p>
+          </div>
+
+          {/* Realism/Deepfake Probabilities */}
+          <div className="space-y-2 mb-8">
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Realism Probability</span>
+              <span className="font-mono">{(result.realism * 100).toFixed(1)}%</span>
+            </div>
+            <Progress value={result.realism * 100} className="h-2 bg-green-500/10" />
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Deepfake Probability</span>
+              <span className="font-mono">{(result.deepfake * 100).toFixed(1)}%</span>
+            </div>
+            <Progress value={result.deepfake * 100} className="h-2 bg-red-500/10" />
           </div>
 
           {/* Additional Info */}

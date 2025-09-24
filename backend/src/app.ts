@@ -8,26 +8,27 @@ declare global {
     }
   }
 }
-import config from "./config/config";
+
 import { errorHandler } from "./middlewares/errorHandler";
 import cors from "cors";
-import axios from "axios";
-import FormData from  "form-data";
-import  fs from  "fs";
-
+import fs from "fs";
 import multer from "multer";
 import { spawn } from "child_process";
-import path from  "path";
+import path from "path";
+import cookieParser from "cookie-parser";
 
+// Ensure uploads directory exists at startup
+const uploadsDir = path.resolve("uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
 });
 
-const upload = multer({ storage }); 
-
-import cookieParser from "cookie-parser";
+const upload = multer({ storage });
 
 const app = express();
 
@@ -40,82 +41,56 @@ app.use(
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 
-
 app.use((req, res, next) => {
   next();
 });
 
-app.use("/api/health",  (req: Request, res: Response) => {
+app.use("/api/health", (req: Request, res: Response) => {
   res.json({ message: "Server Running Perfect 🟢" });
 });
 
-
-app.post("/api/detect/image",upload.single('image'),(req: Request, res: Response) => {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
+app.post("/api/detect", upload.single("file"), (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
     }
 
     const filePath = path.resolve(req.file.path);
+    const pythonScript = path.resolve("deepfake-model/ml_inference.py");
 
-    // Spawn Python script
-    const pyProcess = spawn("python", ["./python_scripts/detect.py", filePath]);
+    const pyProcess = spawn("python3", [pythonScript, filePath]);
 
     let output = "";
+    let errors = "";
+
     pyProcess.stdout.on("data", (data) => {
-       console.log("Python stdout:", data.toString());
-        output += data.toString();
+      output += data.toString();
     });
 
     pyProcess.stderr.on("data", (data) => {
-        console.error("Python error:", data.toString());
+      errors += data.toString();
     });
 
     pyProcess.on("close", (code) => {
-        try {
-            const result = JSON.parse(output);
-            res.json(result);
-        } catch (err) {
-            res.status(500).json({ error: "Failed to parse Python output", details: output });
-        }
-    });
-});
-
-
-app.post("/detect/video", upload.single("video"), (req: Request, res: Response) => {
-    if (!req.file) {
-        return res.status(400).json({ error: "No video uploaded" });
-    }
-
-    const videoPath = path.resolve(req.file.path);
-    const scriptPath = path.resolve(__dirname, "../python_scripts/detect.py");
-    
-
-    const pyProcess = spawn("python", [scriptPath, videoPath]);
-
-    let output = "";
-    pyProcess.stdout.on("data", (data) => {
-        output += data.toString();
-    });
-
-    pyProcess.stderr.on("data", (data) => {
-        console.error("Python error:", data.toString());
-    });
-
-    pyProcess.on("close", (code) => {
-        // Clean up uploaded file
-        fs.unlink(videoPath, (err) => {
-            if (err) console.error("Failed to delete video:", err);
+      try {
+        const result = JSON.parse(output);
+        res.json(result);
+      } catch (e) {
+        res.status(500).json({
+          error: "Failed to parse Python output",
+          stdout: output,
+          stderr: errors,
+          code,
         });
-
-        try {
-            const result = JSON.parse(output);
-            res.json(result);
-        } catch (err) {
-            res.status(500).json({ error: "Failed to parse Python output", details: output });
-        }
+      }
     });
+  } catch (err) {
+    res.status(500).json({
+      error: "Internal server error",
+      details: err instanceof Error ? err.message : err,
+    });
+  }
 });
-
 
 
 
