@@ -11,18 +11,38 @@ import { Label } from "@/components/ui/label"
 import axiosInstance from "@/utils/axiosInstance"
 import { toast } from "sonner"
 
-
 export default function FileUpload() {
   const [file, setFile] = useState<File | null>(null)
   const [url, setUrl] = useState("")
   const [isDragging, setIsDragging] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [uploadMode, setUploadMode] = useState<"image" | "video">("image")
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const router = useRouter()
 
-
-
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Clean up preview URL when file changes or component unmounts
+  useEffect(() => {
+    if (file) {
+      const objectUrl = URL.createObjectURL(file)
+      setPreviewUrl(objectUrl)
+      return () => {
+        URL.revokeObjectURL(objectUrl)
+      }
+    } else {
+      setPreviewUrl(null)
+    }
+  }, [file])
+
+  // If user enters a URL, show it as preview (for images/videos)
+  useEffect(() => {
+    if (!file && url.trim()) {
+      setPreviewUrl(url.trim())
+    } else if (!file) {
+      setPreviewUrl(null)
+    }
+  }, [url, file])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -73,6 +93,7 @@ export default function FileUpload() {
   const handleModeToggle = (mode: "image" | "video") => {
     setUploadMode(mode)
     setFile(null)
+    setUrl("")
   }
 
   const handleSubmit = async () => {
@@ -113,15 +134,22 @@ export default function FileUpload() {
     //   confidence: Math.floor(Math.random() * 30) + 70,
     //   fileUrl: file ? URL.createObjectURL(file) : url,
     // }
-
-   
   }
 
   const removeFile = () => {
     setFile(null)
+    setPreviewUrl(null)
   }
 
   const isValid = file || url.trim()
+
+  // Helper to determine if a string is an image or video url
+  function isImageUrl(str: string) {
+    return /\.(jpe?g|png|gif|bmp|webp)$/i.test(str)
+  }
+  function isVideoUrl(str: string) {
+    return /\.(mp4|mov|avi|mkv|webm)$/i.test(str)
+  }
 
   return (
     <div className="space-y-6">
@@ -168,21 +196,32 @@ export default function FileUpload() {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {file ? (
+        {file || (previewUrl && url.trim()) ? (
           <div className="space-y-4">
             <div className="flex items-center justify-center space-x-2">
-              {file.type.startsWith("image/") ? (
-                <FileImage className="h-8 w-8 text-primary" />
+              {file ? (
+                file.type.startsWith("image/") ? (
+                  <FileImage className="h-8 w-8 text-primary" />
+                ) : (
+                  <FileVideo className="h-8 w-8 text-primary" />
+                )
               ) : (
-                <FileVideo className="h-8 w-8 text-primary" />
+                uploadMode === "image" ? (
+                  <FileImage className="h-8 w-8 text-primary" />
+                ) : (
+                  <FileVideo className="h-8 w-8 text-primary" />
+                )
               )}
-              <span className="font-medium">{file.name}</span>
+              <span className="font-medium">
+                {file ? file.name : url}
+              </span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation() // ✅ prevent explorer when removing
                   removeFile()
+                  setUrl("")
                 }}
                 className="h-6 w-6 p-0 hover:bg-destructive/20"
               >
@@ -190,8 +229,44 @@ export default function FileUpload() {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              File size: {(file.size / 1024 / 1024).toFixed(2)} MB
+              {file
+                ? `File size: ${(file.size / 1024 / 1024).toFixed(2)} MB`
+                : null}
             </p>
+            {/* Preview */}
+            {previewUrl && (
+              <div className="flex justify-center">
+                {uploadMode === "image" && isImageUrl(previewUrl) ? (
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="max-h-64 max-w-full rounded-lg border border-border shadow"
+                    style={{ objectFit: "contain" }}
+                  />
+                ) : uploadMode === "video" && isVideoUrl(previewUrl) ? (
+                  <video
+                    src={previewUrl}
+                    controls
+                    className="max-h-64 max-w-full rounded-lg border border-border shadow"
+                    style={{ objectFit: "contain" }}
+                  />
+                ) : uploadMode === "image" && file && file.type.startsWith("image/") ? (
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="max-h-64 max-w-full rounded-lg border border-border shadow"
+                    style={{ objectFit: "contain" }}
+                  />
+                ) : uploadMode === "video" && file && file.type.startsWith("video/") ? (
+                  <video
+                    src={previewUrl}
+                    controls
+                    className="max-h-64 max-w-full rounded-lg border border-border shadow"
+                    style={{ objectFit: "contain" }}
+                  />
+                ) : null}
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
