@@ -46,7 +46,8 @@ def extract_frames(video_path, max_frames=16):
     return frames
 
 def load_genconvit_model(ed_path, vae_path, device):
-    config_path = os.path.join('config.yaml')
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    config_path = os.path.join(script_dir, "config.yaml")
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
     ed_weights = "genconvit_ed"
