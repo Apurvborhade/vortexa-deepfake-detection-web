@@ -8,14 +8,12 @@ declare global {
     }
   }
 }
-import config from "./config/config";
+
 import { errorHandler } from "./middlewares/errorHandler";
 import cors from "cors";
-import axios from "axios";
-import FormData from "form-data";
 import fs from "fs";
 import multer from "multer";
-import { execFile, spawn } from "child_process";
+import { spawn } from "child_process";
 import path from "path";
 import cookieParser from "cookie-parser";
 
@@ -71,7 +69,6 @@ app.post("/api/detect", upload.single("file"), (req: Request, res: Response) => 
 
     pyProcess.stderr.on("data", (data) => {
       errors += data.toString();
-      console.log("errors", data.toString());
     });
 
     pyProcess.on("close", (code) => {
@@ -95,39 +92,7 @@ app.post("/api/detect", upload.single("file"), (req: Request, res: Response) => 
   }
 });
 
-app.post("/detect/video", upload.single("video"), (req: Request, res: Response) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No video uploaded" });
-  }
 
-  const videoPath = path.resolve(req.file.path);
-  const scriptPath = path.resolve(__dirname, "../python_scripts/detect.py");
-
-  const pyProcess = spawn("python", [scriptPath, videoPath]);
-
-  let output = "";
-  pyProcess.stdout.on("data", (data) => {
-    output += data.toString();
-  });
-
-  pyProcess.stderr.on("data", (data) => {
-    console.error("Python error:", data.toString());
-  });
-
-  pyProcess.on("close", (code) => {
-    // Clean up uploaded file
-    fs.unlink(videoPath, (err) => {
-      if (err) console.error("Failed to delete video:", err);
-    });
-
-    try {
-      const result = JSON.parse(output);
-      res.json(result);
-    } catch (err) {
-      res.status(500).json({ error: "Failed to parse Python output", details: output });
-    }
-  });
-});
 
 app.use(errorHandler);
 export default app;
