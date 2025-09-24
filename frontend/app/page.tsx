@@ -1,11 +1,17 @@
+"use client"
 import Navigation from "@/components/navigation"
 import Footer from "@/components/footer"
 import FileUpload from "@/components/file-upload"
 import AnimatedBackground from "@/components/animated-background"
 import ScrollAnimations from "@/components/scroll-animations"
 import { Shield, Zap, Lock, CheckCircle } from "lucide-react"
+import { useEffect } from "react"
+import { toast } from "sonner"
 
 export default function HomePage() {
+  useEffect(() => {
+    toast.success("Success")
+  },[]) 
   return (
     <div className="min-h-screen flex flex-col relative">
       <AnimatedBackground />

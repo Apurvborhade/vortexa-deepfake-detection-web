@@ -8,11 +8,10 @@ import ResultDisplay from "@/components/result-display"
 import AnimatedBackground from "@/components/animated-background"
 
 interface AnalysisResult {
-  type: "file" | "url"
-  name: string
   prediction: "real" | "fake"
   confidence: number
-  fileUrl: string
+  realism: number
+  deepfake: number
 }
 
 export default function ResultsPage() {
@@ -23,7 +22,42 @@ export default function ResultsPage() {
   useEffect(() => {
     const storedResult = localStorage.getItem("deepcheck-result")
     if (storedResult) {
-      setResult(JSON.parse(storedResult))
+      try {
+        // The result is in the format: { "Realism": 0.57, "Deepfake": 0.42 }
+        const parsed = JSON.parse(storedResult)
+        if (
+          typeof parsed === "object" &&
+          parsed !== null &&
+          typeof parsed.Realism === "number" &&
+          typeof parsed.Deepfake === "number"
+        ) {
+          const realism = parsed.Realism
+          const deepfake = parsed.Deepfake
+          let prediction: "real" | "fake"
+          let confidence: number
+
+          // Only "real" if realism > 0.75, otherwise "fake"
+          if (realism > 0.75) {
+            prediction = "real"
+            confidence = Math.round(realism * 100)
+          } else {
+            prediction = "fake"
+            // Confidence is the higher of deepfake or realism, as before
+            confidence = Math.round(Math.max(deepfake, realism) * 100)
+          }
+
+          setResult({
+            prediction,
+            confidence,
+            realism,
+            deepfake,
+          })
+        } else {
+          setResult(null)
+        }
+      } catch (e) {
+        setResult(null)
+      }
     } else {
       router.push("/")
     }

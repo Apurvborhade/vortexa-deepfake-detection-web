@@ -103,7 +103,7 @@ def main():
             frames_tensor = preprocess_frames(frames, DEVICE)
             probs = predict_video(model, frames_tensor)
             video_pred = probs.mean(axis=0)
-            labels = ["Real", "Deepfake"]
+            labels = ["Realism", "Deepfake"]
             result = {labels[i]: float(video_pred[i]) for i in range(len(labels))}
             print(json.dumps({"type": "video", "result": result}))
         else:
