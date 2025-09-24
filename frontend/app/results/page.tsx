@@ -4,14 +4,15 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Navigation from "@/components/navigation"
 import Footer from "@/components/footer"
-import ResultDisplay from "@/components/result-display"
 import AnimatedBackground from "@/components/animated-background"
+import ResultDisplay from "@/components/result-display"
 
 interface AnalysisResult {
   prediction: "real" | "fake"
   confidence: number
   realism: number
   deepfake: number
+  fileUrl: string
 }
 
 export default function ResultsPage() {
@@ -28,39 +29,17 @@ export default function ResultsPage() {
     }
     if (storedResult) {
       try {
-        // The result is in the format: { "Realism": 0.57, "Deepfake": 0.42 }
         const parsed = JSON.parse(storedResult)
-        if (
-          typeof parsed === "object" &&
-          parsed !== null &&
-          typeof parsed.Realism === "number" &&
-          typeof parsed.Deepfake === "number"
-        ) {
+        if (parsed.fileUrl && parsed.Realism !== undefined && parsed.Deepfake !== undefined) {
           const realism = parsed.Realism
           const deepfake = parsed.Deepfake
-          let prediction: "real" | "fake"
-          let confidence: number
-
-          // Only "real" if realism > 0.75, otherwise "fake"
-          if (realism > 0.75) {
-            prediction = "real"
-            confidence = Math.round(realism * 100)
-          } else {
-            prediction = "fake"
-            // Confidence is the higher of deepfake or realism, as before
-            confidence = Math.round(Math.max(deepfake, realism) * 100)
-          }
-
-          setResult({
-            prediction,
-            confidence,
-            realism,
-            deepfake,
-          })
+          const prediction = realism > 0.75 ? "real" : "fake"
+          const confidence = prediction === "real" ? Math.round(realism * 100) : Math.round(Math.max(deepfake, realism) * 100)
+          setResult({ ...parsed, prediction, confidence, realism, deepfake })
         } else {
-          setResult(null)
+          setResult(parsed)
         }
-      } catch (e) {
+      } catch {
         setResult(null)
       }
     } else {
@@ -91,9 +70,7 @@ export default function ResultsPage() {
         <AnimatedBackground />
         <Navigation />
         <div className="flex-1 flex items-center justify-center relative z-10">
-          <div className="text-center">
-            <p className="text-muted-foreground">No results found</p>
-          </div>
+          <p className="text-muted-foreground">No results found</p>
         </div>
         <Footer />
       </div>
