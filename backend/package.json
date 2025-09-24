@@ -8,7 +8,9 @@
   "main": "src/server.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon --watch src --ext ts,js,json src/server.ts"
+    "build": "tsc",
+    "backend": "nodemon --watch src --ext ts,js,json --exec ts-node src/server.ts",
+    "start": "node dist/server.js"
   },
   "dependencies": {
     "@turf/turf": "^7.2.0",
@@ -23,6 +25,8 @@
     "jsrsasign": "^10.9.0",
     "mongodb": "^6.19.0",
     "mongoose": "^8.18.0",
+    "multer": "^2.0.2",
+    "mutter": "^1.0.1",
     "node-fetch": "^3.3.2",
     "qrcode": "^1.5.4",
     "uuid": "^8.3.2"
@@ -33,6 +37,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.0.0",
     "@types/node": "^24.3.0",
     "@types/qrcode": "^1.5.5",
     "eslint": "^9.34.0",
