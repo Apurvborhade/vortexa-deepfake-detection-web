@@ -32,9 +32,14 @@ const upload = multer({ storage });
 
 const app = express();
 
+// Allow requests from the extension as well as local dev
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:3000"],
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "chrome-extension://hcndkeangcokeallhnkhjaceedcjpcjj"
+    ],
     credentials: true,
   })
 );
@@ -91,8 +96,6 @@ app.post("/api/detect", upload.single("file"), (req: Request, res: Response) => 
     });
   }
 });
-
-
 
 app.use(errorHandler);
 export default app;
