@@ -20,7 +20,12 @@ import { spawn } from "child_process";
 import path from  "path";
 
 
-const upload = multer({ dest: "uploads/" }); 
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
+});
+
+const upload = multer({ storage }); 
 
 import cookieParser from "cookie-parser";
 
@@ -40,12 +45,12 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use("/api/health", upload.single('image'), (req: Request, res: Response) => {
+app.use("/api/health",  (req: Request, res: Response) => {
   res.json({ message: "Server Running Perfect 🟢" });
 });
 
 
-app.post("/api/detect/image",(req: Request, res: Response) => {
+app.post("/api/detect/image",upload.single('image'),(req: Request, res: Response) => {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
     }
@@ -57,6 +62,7 @@ app.post("/api/detect/image",(req: Request, res: Response) => {
 
     let output = "";
     pyProcess.stdout.on("data", (data) => {
+       console.log("Python stdout:", data.toString());
         output += data.toString();
     });
 
@@ -82,6 +88,7 @@ app.post("/detect/video", upload.single("video"), (req: Request, res: Response) 
 
     const videoPath = path.resolve(req.file.path);
     const scriptPath = path.resolve(__dirname, "../python_scripts/detect.py");
+    
 
     const pyProcess = spawn("python", [scriptPath, videoPath]);
 

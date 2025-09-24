@@ -8,7 +8,9 @@
   "main": "src/server.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon --watch src --ext ts,js,json src/server.ts"
+    "build": "tsc",
+    "backend": "nodemon --watch src --ext ts,js,json --exec ts-node src/server.ts",
+    "start": "node dist/server.js"
   },
   "dependencies": {
     "@turf/turf": "^7.2.0",
