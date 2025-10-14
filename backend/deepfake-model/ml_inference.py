@@ -151,7 +151,7 @@ def main():
     try:
         if ext in [".jpg", ".jpeg", ".png", ".bmp"]:
             # Image inference
-            results,heatmap_b64 = classify_image(file_path,return_heatmap=False)
+            results,heatmap_b64 = classify_image(file_path,return_heatmap=True)
             print(json.dumps({"type": "image", "result": results,"heatmap":heatmap_b64}))
         elif ext in [".mp4", ".avi", ".mov", ".mkv"]:
             # Video inference

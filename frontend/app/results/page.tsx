@@ -24,6 +24,7 @@ export default function ResultsPage() {
   useEffect(() => {
     const storedResult = localStorage.getItem("deepcheck-result")
     const storedHeatmap = localStorage.getItem("deepcheck-heatmap")
+    const storedFileType = localStorage.getItem("deepcheck-file")
     if (storedHeatmap) {
       setHeatMap(storedHeatmap)
     }
@@ -43,13 +44,33 @@ export default function ResultsPage() {
           let confidence: number
 
           // For video: "real" if realism > deepfake, else "fake"
-          // For image: "real" if realism > deepfake, else "fake"
-          if (realism > deepfake) {
-            prediction = "real"
-            confidence = Math.round(realism * 100)
+
+         
+          if (storedFileType === "video/mp4") {
+            if (realism > 0.75) {
+              prediction = "real"
+              confidence = Math.round(realism * 100)
+            } else {
+              prediction = "fake"
+              confidence = Math.round(deepfake * 100)
+            }
+          } else if (storedFileType === "image/jpg") {
+            if (realism > deepfake) {
+              prediction = "real"
+              confidence = Math.round(realism * 100)
+            } else {
+              prediction = "fake"
+              confidence = Math.round(deepfake * 100)
+            }
           } else {
-            prediction = "fake"
-            confidence = Math.round(deepfake * 100)
+            // Default fallback (original logic)
+            if (realism > deepfake) {
+              prediction = "real"
+              confidence = Math.round(realism * 100)
+            } else {
+              prediction = "fake"
+              confidence = Math.round(deepfake * 100)
+            }
           }
 
           setResult({
