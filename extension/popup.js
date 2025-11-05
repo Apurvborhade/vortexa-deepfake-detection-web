@@ -64,7 +64,7 @@ async function uploadToBackend(dataUrl) {
   try {
     const file = dataUrlToFile(dataUrl, "crop.png");
     const formData = new FormData();
-    formData.append("file", file, file.name);
+    formData.append("image", file, file.name);
     const res = await fetch("http://localhost:8000/api/detect", {
       method: "POST",
       body: formData
@@ -106,25 +106,75 @@ function renderResult(payload) {
     resultEl.textContent = String(payload);
     return;
   }
-  const type = payload.type || "image";
-  const result = payload.result || {};
-  const realism = Number(result.Realism ?? result.realism ?? 0);
-  const deepfake = Number(result.Deepfake ?? result.deepfake ?? 0);
-  const verdict = deepfake >= realism ? "Likely Deepfake" : "Likely Real";
-  const badgeClass = deepfake >= realism ? "badge badge-fake" : "badge badge-real";
 
-  const realismPct = Math.round(realism * 100);
-  const deepfakePct = Math.round(deepfake * 100);
+  // Main fields from new payload structure
+  const createdAt = payload.created_at;
+  const id = payload.id;
+  const report = payload.report || {};
+  const aiGenerated = report.ai_generated || {};
+  const deepfake = payload.deepfake || {};
+  const meta = payload.meta || {};
+  const nsfw = payload.nsfw || {};
+  const quality = payload.quality || {};
 
+  // Verdict and badge (from new style, fallbacks)
+  let verdictText = "Unknown";
+  let badgeClass = "badge";
+  if (aiGenerated.verdict === "ai") {
+    verdictText = "Likely AI";
+    badgeClass = "badge badge-fake";
+  } else if (aiGenerated.verdict === "human") {
+    verdictText = "Likely Real";
+    badgeClass = "badge badge-real";
+  }
+
+  // Deepfake info
+  const deepfakeDetected = deepfake.is_detected ? "Yes" : "No";
+  const deepfakeConfidence = (typeof deepfake.confidence === "number")
+    ? Math.round(deepfake.confidence * 100)
+    : null;
+
+  // NSFW
+  const nsfwDetected = nsfw.is_detected ? "Yes" : "No";
+
+  // Quality
+  const qualityDetected = quality.is_detected ? "Yes" : "No";
+
+  // Meta info
+  const width = meta.width ?? "";
+  const height = meta.height ?? "";
+  const format = meta.format ?? "";
+  const sizeKB = typeof meta.size_bytes === "number"
+    ? (meta.size_bytes / 1024).toFixed(1) + " KB"
+    : "";
+  const md5 = meta.md5 ?? "";
+
+  // Compose HTML
   resultEl.innerHTML = `
     <div class="row">
-      <div><strong>Analysis</strong> <span class="badge ${badgeClass}">${verdict}</span></div>
-      <div style="font-size:11px;color:#666;">${type}</div>
+      <div>
+        <strong>Analysis</strong> <span class="${badgeClass}">${verdictText}</span>
+      </div>
+      <div style="font-size:11px;color:#666;">${format ? format : "image"}</div>
     </div>
-    <div style="margin:4px 0 2px;">Realism: ${realismPct}%</div>
-    <div class="meter"><div class="bar bar-real" style="width:${realismPct}%;"></div></div>
-    <div style="margin:8px 0 2px;">Deepfake: ${deepfakePct}%</div>
-    <div class="meter"><div class="bar bar-fake" style="width:${deepfakePct}%;"></div></div>
+    <div style="margin:4px 0 2px;">
+    </div>
+    ${deepfakeConfidence !== null ? `
+      <div class="meter"><div class="bar bar-fake" style="width:${deepfakeConfidence}%;"></div></div>
+    ` : ""}
+    <div style="margin:4px 0 2px;">
+      <b>NSFW:</b> ${nsfwDetected}
+    </div>
+    <div style="margin:4px 0 2px;">
+      <b>Quality Issues:</b> ${qualityDetected}
+    </div>
+    <div style="margin:10px 0 2px;color:#aaa;">
+      <b>ID:</b> <code>${id || ""}</code>
+      <br><b>Created At:</b> <time>${createdAt ? new Date(createdAt).toLocaleString() : ""}</time>
+      <br><b>Size:</b> ${sizeKB}
+      <br><b>Dimensions:</b> ${width && height ? `${width} x ${height}` : ""}
+      <br><b>MD5:</b> <span style="font-size:10px;">${md5}</span>
+    </div>
   `;
 }
   
