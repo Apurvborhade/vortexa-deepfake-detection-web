@@ -104,7 +104,7 @@ export default function FileUpload() {
     try {
       const formData = new FormData();
       if (file) {
-        formData.append("file", file);
+        formData.append("image", file);
         console.log(file)
       }
       const res = await axiosInstance.post('/detect', formData, {
@@ -113,7 +113,7 @@ export default function FileUpload() {
         },
       });
       console.log("Result",res)
-      localStorage.setItem("deepcheck-result", JSON.stringify(res.data.result))
+      localStorage.setItem("deepcheck-result", JSON.stringify(res.data))
       localStorage.setItem("deepcheck-heatmap", JSON.stringify(res.data.heatmap))
       localStorage.setItem("deepcheck-file", file.type)
       toast.success("Image Analysis Completed")

@@ -16,6 +16,7 @@ import multer from "multer";
 import { spawn } from "child_process";
 import path from "path";
 import cookieParser from "cookie-parser";
+import fetch from "node-fetch";
 
 // Ensure uploads directory exists at startup
 const uploadsDir = path.resolve("uploads");
@@ -54,46 +55,42 @@ app.use("/api/health", (req: Request, res: Response) => {
   res.json({ message: "Server Running Perfect 🟢" });
 });
 
-app.post("/api/detect", upload.single("file"), (req: Request, res: Response) => {
+app.post("/api/detect", upload.single("image"), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    const filePath = path.resolve(req.file.path);
-    const pythonScript = path.resolve("deepfake-model/ml_inference.py");
+    // Determine file type and select the correct API endpoint
+    const mimeType = req.file.mimetype;
+    let apiEndpoint = "https://api.aiornot.com/v2/image/sync";
+    // If video file, change endpoint
+    if (mimeType && mimeType.startsWith("video/")) {
+      apiEndpoint = "https://api.aiornot.com/v2/video/sync";
+    }
 
-    const pyProcess = spawn("python3", [pythonScript, filePath]);
+    const fileStream = fs.createReadStream(req.file.path);
+    const form = new (require('form-data'))();
+    // Use the field name 'image' for images, 'video' for videos
+    const fieldName = mimeType && mimeType.startsWith("video/") ? 'video' : 'image';
+    form.append(fieldName, fileStream, req.file.originalname);
 
-    let output = "";
-    let errors = "";
-
-    pyProcess.stdout.on("data", (data) => {
-      output += data.toString();
+    const response = await fetch(apiEndpoint, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.AIORNOT_API_KEY}`,
+        // form-data will set proper headers automatically
+        ...form.getHeaders()
+      },
+      body: form,
     });
 
-    pyProcess.stderr.on("data", (data) => {
-      errors += data.toString();
-    });
-
-    pyProcess.on("close", (code) => {
-      try {
-        const result = JSON.parse(output);
-        res.json(result);
-      } catch (e) {
-        res.status(500).json({
-          error: "Failed to parse Python output",
-          stdout: output,
-          stderr: errors,
-          code,
-        });
-      }
-    });
-  } catch (err) {
-    res.status(500).json({
-      error: "Internal server error",
-      details: err instanceof Error ? err.message : err,
-    });
+    const data = await response.json();
+    console.log(data);
+    res.json(data);
+  } catch (error) {
+    console.error("Error fetching AI or Not API:", error);
+    res.status(500).json({ error: "Failed to contact AI or Not API" });
   }
 });
 

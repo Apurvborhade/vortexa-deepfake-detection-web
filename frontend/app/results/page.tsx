@@ -7,16 +7,10 @@ import Footer from "@/components/footer"
 import AnimatedBackground from "@/components/animated-background"
 import ResultDisplay from "@/components/result-display"
 
-interface AnalysisResult {
-  prediction: "real" | "fake"
-  confidence: number
-  realism: number
-  deepfake: number
-  fileUrl: string
-}
+import type { AnalysisReportData } from "@/components/result-display" // TS will use the real definition
 
 export default function ResultsPage() {
-  const [result, setResult] = useState<AnalysisResult | null>(null)
+  const [result, setResult] = useState<AnalysisReportData | null>(null)
   const [heatmap, setHeatMap] = useState<any | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
@@ -24,62 +18,22 @@ export default function ResultsPage() {
   useEffect(() => {
     const storedResult = localStorage.getItem("deepcheck-result")
     const storedHeatmap = localStorage.getItem("deepcheck-heatmap")
-    const storedFileType = localStorage.getItem("deepcheck-file")
     if (storedHeatmap) {
       setHeatMap(storedHeatmap)
     }
     if (storedResult) {
       try {
-        // The result is in the format: { "Realism": 0.57, "Deepfake": 0.42 }
+        // Here we expect storedResult to be full API return (AnalysisReportData-like)
         const parsed = JSON.parse(storedResult)
         if (
           typeof parsed === "object" &&
           parsed !== null &&
-          typeof parsed.Realism === "number" &&
-          typeof parsed.Deepfake === "number"
+          typeof parsed.created_at === "string" &&
+          typeof parsed.id === "string" &&
+          typeof parsed.report === "object" &&
+          parsed.report !== null
         ) {
-          const realism = parsed.Realism
-          const deepfake = parsed.Deepfake
-          let prediction: "real" | "fake"
-          let confidence: number
-
-          // For video: "real" if realism > deepfake, else "fake"
-
-         
-          if (storedFileType === "video/mp4") {
-            if (realism > 0.75) {
-              prediction = "real"
-              confidence = Math.round(realism * 100)
-            } else {
-              prediction = "fake"
-              confidence = Math.round(deepfake * 100)
-            }
-          } else if (storedFileType === "image/jpg") {
-            if (realism > deepfake) {
-              prediction = "real"
-              confidence = Math.round(realism * 100)
-            } else {
-              prediction = "fake"
-              confidence = Math.round(deepfake * 100)
-            }
-          } else {
-            // Default fallback (original logic)
-            if (realism > deepfake) {
-              prediction = "real"
-              confidence = Math.round(realism * 100)
-            } else {
-              prediction = "fake"
-              confidence = Math.round(deepfake * 100)
-            }
-          }
-
-          setResult({
-            ...parsed,
-            prediction,
-            confidence,
-            realism,
-            deepfake,
-          })
+          setResult(parsed as AnalysisReportData)
         } else {
           setResult(null)
         }
